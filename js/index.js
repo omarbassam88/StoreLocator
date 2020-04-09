@@ -2,27 +2,19 @@ var map = map;
 
 var markers = [];
 
-var infoWindow;
-
 var infoWindows = [];
 
 // Adding Event Listeners to Store Containers
 
 window.onload = () => {
-  displayStores();
-  // Add event Listeners to
-  var storeContainers = document.querySelectorAll(".store-container");
-  for (let i = 0; i < storeContainers.length; i++) {
-    storeContainers[i].addEventListener("click", focusStore);
-  }
-  console.log(storeContainers);
+  searchStores();
+
 };
 
+
+
+
 function initMap() {
-  var cairo = {
-    lat: 30.0444,
-    lng: 31.2357,
-  };
 
   var losAngeles = {
     lat: 34.06338,
@@ -257,14 +249,14 @@ function initMap() {
     ],
   });
 
-  // Adding a  marker to the map
-  var marker = new google.maps.Marker({ position: cairo, map: map });
 }
 
-function displayStores() {
+function displayStores(stores_list) {
   var storeHtml = "";
+  var bounds = new google.maps.LatLngBounds();
 
-  for (var store of stores) {
+
+  for (var store of stores_list) {
     storeHtml += `
     <div class="store-container" id="${stores.indexOf(store)}" >
       <div class="store-info">          
@@ -277,18 +269,29 @@ function displayStores() {
         </div>
       </div> 
       <div class="store-number-container">
-        <div class="store-number">${stores.indexOf(store) + 1}</div>
+        <div class="store-number">${stores_list.indexOf(store) + 1}</div>
       </div>      
     </div>
     `;
 
+    // Adding Store Containers to the DOM
     document.querySelector(".stores-list").innerHTML = storeHtml;
 
-    createMarker(store);
+    createMarker(store,stores_list.indexOf(store));
+
+    bounds.extend(new google.maps.LatLng(store.coordinates.latitude, store.coordinates.longitude));
   }
+
+    // Add event Listeners to Store Containers
+    var storeContainers = document.querySelectorAll(".store-container");
+    for (let i = 0; i < storeContainers.length; i++) {
+      storeContainers[i].addEventListener("click", focusStore);
+    }
+
+  map.fitBounds(bounds);
 }
 
-function createMarker(store) {
+function createMarker(store, index) {
   // Getting Store information
   var name = store.name;
   var address = store.addressLines[0];
@@ -304,9 +307,11 @@ function createMarker(store) {
       lng: y,
     },
     map: map,
-    label: (stores.indexOf(store) + 1).toString(),
+    label: (index + 1).toString(),
     icon: iconBase + '190201-2016-animal-paw_4x.png'
   });
+
+  markers.push(marker);
 
   // Create Info Window html
   var html = `<div class="infoWindow">
@@ -332,6 +337,7 @@ function closeAllInfoWindows() {
 
 function focusStore() {
   let id = this.getAttribute("id");
+  console.log(id)
   showInfoWindow(stores[id])
 }
 
@@ -347,7 +353,7 @@ function showInfoWindow(store) {
     opacity: 0,
   });
   map.setZoom(15);
-  map.setCenter(pos);
+  map.panTo(pos);
   var html = `<div class="infoWindow">
   <h2><b>${store.name}</b></h2>
   <p>${store.openStatusText}</p>
@@ -371,4 +377,30 @@ function showInfoWindow(store) {
   closeAllInfoWindows();
   infowindow.open(map, marker);
   infoWindows.push(infowindow);
+}
+
+function searchStores() {
+  clearMarkers();
+  // get zipcode from Search input
+  var zipCode= document.querySelector('#zip-code-input').value.substring(0,5);
+
+
+  // filter the stores by zip Code
+  var stores_filter = stores.filter(store => store.address.postalCode.includes(zipCode) );
+
+
+  // display Filtered list
+  displayStores(stores_filter);
+
+}
+
+function clearMarkers() {
+  setMapOnAll(null);
+}
+
+
+function setMapOnAll(map) {
+  for (var i = 0; i < markers.length; i++) {
+    markers[i].setMap(map);
+  }
 }
